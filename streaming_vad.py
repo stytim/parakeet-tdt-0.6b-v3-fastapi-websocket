@@ -9,9 +9,9 @@ vad_model, vad_utils = torch_hub_load("snakers4/silero-vad", "silero_vad")
 # TODO: Update to read from .env
 SAMPLE_RATE              = 16_000         # model is trained for 16 kHz
 WINDOW_SAMPLES           = 512            # 32 ms frame
-THRESHOLD                = 0.60           # voice prob ≥ 0.60 → speech
-MIN_SILENCE_MS           = 250            # flush after ≥250 ms quiet
-SPEECH_PAD_MS            = 120            # keep 120 ms context before/after
+THRESHOLD                = 0.95           # match RealtimeSTT silero_sensitivity=0.05 -> threshold=0.95
+MIN_SILENCE_MS           = 700            # match RealtimeSTT default unknown_sentence_detection_pause/post_speech_silence
+SPEECH_PAD_MS            = 400            # match closer to RealtimeSTT buffer
 MAX_SPEECH_MS            = 8_000          # hard stop at 8 s
 
 # Helper: float32 → int16 PCM bytes
