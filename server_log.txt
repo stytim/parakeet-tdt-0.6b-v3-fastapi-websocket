@@ -1,0 +1,35 @@
+
+Initializing ONNX Runtime...
+Available providers: ['CoreMLExecutionProvider', 'AzureExecutionProvider', 'CPUExecutionProvider']
+Using providers: ['CPUExecutionProvider']
+
+Loading default Parakeet TDT 0.6B V3 ONNX model with INT8 quantization...
+Default model loaded successfully with CPU optimization!
+==================================================
+Using cache found in /Users/tianyusong/.cache/torch/hub/snakers4_silero-vad_master
+/Users/tianyusong/dev/parakeet-tdt-0.6b-v3-fastapi-openai/app.py:830: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @fastapi_app.on_event("startup")
+/Users/tianyusong/dev/parakeet-tdt-0.6b-v3-fastapi-openai/app.py:836: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @fastapi_app.on_event("shutdown")
+Starting server...
+WebSocket Endpoint: ws://0.0.0.0:5092/ws
+Running with uvicorn (threads=8).
+INFO:     Started server process [87214]
+INFO:     Waiting for application startup.
+Using cached model: parakeet-tdt-0.6b-v3
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5092 (Press CTRL+C to quit)
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87214]

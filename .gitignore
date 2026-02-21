@@ -39,3 +39,4 @@ nohup.out
 # IDE
 .idea/
 .vscode/
+*log.txt\ntest*.py

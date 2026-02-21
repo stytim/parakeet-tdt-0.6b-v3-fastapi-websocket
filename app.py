@@ -25,7 +25,7 @@ from werkzeug.utils import secure_filename
 
 import flask
 from flask import Flask, request, jsonify, render_template, Response
-from waitress import serve
+# Removing waitress import
 from pathlib import Path
 
 ROOT_DIR = Path(os.getcwd()).as_posix()
@@ -816,12 +816,40 @@ def openweb():
 
 
 if __name__ == "__main__":
+    from fastapi import FastAPI
+    from fastapi.middleware.wsgi import WSGIMiddleware
+    from stream_routes import router as ws_router
+    from batchworker import batch_worker
+    import uvicorn
+    import asyncio
+    
+    fastapi_app = FastAPI(title="Parakeet-TDT 0.6B v3 API with WebSocket")
+    fastapi_app.include_router(ws_router)
+    fastapi_app.mount("/", WSGIMiddleware(app))
+    
+    @fastapi_app.on_event("startup")
+    async def startup_event():
+        # Get the cached default model
+        model = get_model("parakeet-tdt-0.6b-v3")
+        fastapi_app.state.batch_worker_task = asyncio.create_task(batch_worker(model))
+
+    @fastapi_app.on_event("shutdown")
+    async def shutdown_event():
+        task = getattr(fastapi_app.state, "batch_worker_task", None)
+        if task:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
     print(f"Starting server...")
-    print(f"Web interface: http://127.0.0.1:{port}")
-    print(f"API Endpoint: POST http://{host}:{port}/v1/audio/transcriptions")
-    print(f"Running with {threads} threads.")
+    print(f"WebSocket Endpoint: ws://{host}:{port}/ws")
+    print(f"Running with uvicorn (threads={threads}).")
+    
     print(f"Starting web browser thread...")
-    threading.Thread(target=openweb).start()
-    print(f"Starting waitress server...")
-    serve(app, host=host, port=port, threads=threads)
-    print(f"Server started!")
+    import threading
+    threading.Thread(target=openweb, daemon=True).start()
+    
+    print(f"Starting uvicorn server...")
+    uvicorn.run(fastapi_app, host=host, port=port, log_level="info")

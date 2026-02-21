@@ -1,5 +1,8 @@
 onnx-asr[hub]>=0.10.0
-waitress>=3.0.0
+uvicorn[standard]>=0.20.0
+fastapi>=0.95.0
+torch==2.9.0
+torchaudio
 flask>=3.0.0
 openai>=1.0.0
 typing_extensions>=4.0.0
