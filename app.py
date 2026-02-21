@@ -847,9 +847,9 @@ if __name__ == "__main__":
     print(f"WebSocket Endpoint: ws://{host}:{port}/ws")
     print(f"Running with uvicorn (threads={threads}).")
     
-    print(f"Starting web browser thread...")
-    import threading
-    threading.Thread(target=openweb, daemon=True).start()
+    # print(f"Starting web browser thread...")
+    # import threading
+    # threading.Thread(target=openweb, daemon=True).start()
     
     print(f"Starting uvicorn server...")
     uvicorn.run(fastapi_app, host=host, port=port, log_level="info")
