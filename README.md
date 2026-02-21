@@ -7,6 +7,8 @@
 
 This implementation achieves exceptional real-time speeds, outperforming standard [openai/whisper](https://github.com/openai/whisper) and competing directly with GPU-accelerated [faster-whisper](https://github.com/SYSTRAN/faster-whisper) implementations while running entirely on consumer CPUs. The efficiency is achieved through the architectural advantages of the Token-and-Duration Transducer (TDT) model combined with 8-bit quantization.
 
+> **Note on this fork**: This fork adds WebSocket support for real-time audio transcription. In addition, Silero VAD was added for voice activity detection. To test live transcription, run `python client_ws.py --debug` after the `app.py` server is running.
+
 ## 🌍 Multilingual Support
 
 **Parakeet TDT 0.6B v3** features robust multilingual capabilities with **automatic language detection**. The model can automatically identify and transcribe speech in any of the **25 supported languages** without requiring manual language specification:
