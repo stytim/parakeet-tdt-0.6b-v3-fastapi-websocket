@@ -1,6 +1,6 @@
 host = "0.0.0.0"
 port = 5092
-threads = 8  # Optimized for 8 P-cores
+threads = os.cpu_count() or 8  # Dynamically use all available threads
 CHUNK_MINUTE = 1.5  # Target 90-second chunks with intelligent silence-based splitting
 
 # Intelligent chunking configuration
@@ -69,8 +69,6 @@ try:
     
     # Priority: Tensorrt, CUDA, CPU
     providers_to_try = []
-    if "TensorrtExecutionProvider" in available_providers:
-        providers_to_try.append("TensorrtExecutionProvider")
     if "CUDAExecutionProvider" in available_providers:
         providers_to_try.append("CUDAExecutionProvider")
     providers_to_try.append("CPUExecutionProvider")
@@ -82,7 +80,7 @@ try:
     
     # Configure session options for optimal CPU performance
     sess_options = ort.SessionOptions()
-    sess_options.intra_op_num_threads = 4  # Match Waitress threads
+    sess_options.intra_op_num_threads = threads
     sess_options.inter_op_num_threads = 1
     sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
     sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
@@ -98,7 +96,9 @@ try:
     # Cache the default model
     model_cache["parakeet-tdt-0.6b-v3"] = asr_model
     
-    print("Default model loaded successfully with CPU optimization!")
+    # Check actual providers used by the model
+    actual_providers = asr_model.session.get_providers()
+    print(f"Default model loaded successfully using: {actual_providers}")
 except Exception as e:
     print(f"❌ Model loading failed: {e}")
     import traceback
@@ -138,15 +138,13 @@ def get_model(model_name):
         # Reuse providers from startup
         available_providers = ort.get_available_providers()
         providers_to_try = []
-        if "TensorrtExecutionProvider" in available_providers:
-            providers_to_try.append("TensorrtExecutionProvider")
         if "CUDAExecutionProvider" in available_providers:
             providers_to_try.append("CUDAExecutionProvider")
         providers_to_try.append("CPUExecutionProvider")
         
         # Configure session options
         sess_options = ort.SessionOptions()
-        sess_options.intra_op_num_threads = 4
+        sess_options.intra_op_num_threads = threads
         sess_options.inter_op_num_threads = 1
         sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
         sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
@@ -160,7 +158,9 @@ def get_model(model_name):
         
         # Cache the loaded model
         model_cache[model_name] = model
-        print(f"Model {model_name} loaded successfully")
+        
+        actual_providers = model.session.get_providers()
+        print(f"Model {model_name} loaded successfully using: {actual_providers}")
         
         return model
     except Exception as e:
