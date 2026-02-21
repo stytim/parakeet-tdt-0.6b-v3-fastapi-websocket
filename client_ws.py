@@ -4,6 +4,7 @@ import pyaudio
 import json
 import sys
 import argparse
+import uuid
 
 # Audio configuration required by Parakeet (16 kHz, 16-bit PCM, Mono)
 FORMAT = pyaudio.paInt16
@@ -12,7 +13,10 @@ RATE = 16000
 CHUNK = 512  # 32ms frames at 16kHz
 
 async def audio_handler(debug=False):
-    uri = "ws://localhost:5092/ws"
+    # Generate a unique session ID for this client instance
+    session_id = str(uuid.uuid4())
+    events_uri = f"ws://localhost:5092/ws/events/{session_id}"
+    audio_uri = f"ws://localhost:5092/ws/audio/{session_id}"
     
     print("Initializing microphone...")
     try:
@@ -28,9 +32,13 @@ async def audio_handler(debug=False):
         print("macOS users: Make sure your terminal has Microphone permissions in System Settings > Privacy & Security.")
         return
     
-    print(f"Connecting to {uri}...")
+    print(f"Connecting Event socket to {events_uri}...")
+    print(f"Connecting Audio socket to {audio_uri}...")
     try:
-        async with websockets.connect(uri) as websocket:
+        # Open both WebSocket connections concurrently
+        async with websockets.connect(events_uri) as events_ws, \
+                   websockets.connect(audio_uri) as audio_ws:
+            
             print("✅ Connected! Start speaking... (Press Ctrl+C to stop)")
             
             async def send_audio():
@@ -39,7 +47,7 @@ async def audio_handler(debug=False):
                     while True:
                         # Read audio from microphone (non-blocking asyncio thread)
                         data = await asyncio.to_thread(stream.read, CHUNK, exception_on_overflow=False)
-                        await websocket.send(data)
+                        await audio_ws.send(data)
                         chunks_sent += 1
                         
                         if debug and chunks_sent % 100 == 0:
@@ -55,18 +63,28 @@ async def audio_handler(debug=False):
             async def receive_transcription():
                 try:
                     while True:
-                        response = await websocket.recv()
+                        response = await events_ws.recv()
                         data = json.loads(response)
                         
                         if debug:
-                            print(f"[Debug server said]: {data}")
+                            print(f"\n[Debug server said]: {data}")
 
-                        # Print transcribed text
+                        # Print VAD status and transcribed text
+                        if "vad" in data:
+                            if data["vad"] == "speech_start":
+                                sys.stdout.write("\r🎤 Speech started...           ")
+                                sys.stdout.flush()
+                            elif data["vad"] == "speech_end":
+                                sys.stdout.write("\r🛑 Speech ended.               ")
+                                sys.stdout.flush()
+
                         if "text" in data and data["text"].strip():
-                            print(f"\n[You]: {data['text']}")
+                            # Clear the status line before printing the text
+                            sys.stdout.write("\r" + " " * 30 + "\r")
+                            print(f"[You]: {data['text']}")
                             
                 except websockets.exceptions.ConnectionClosed as e:
-                    print(f"\nConnection closed by server: {e}")
+                    print(f"\nEvents connection closed by server: {e}")
                 except asyncio.CancelledError:
                     pass
                 except Exception as e:
@@ -86,7 +104,7 @@ async def audio_handler(debug=False):
                 task.cancel()
                 
     except ConnectionRefusedError:
-        print(f"❌ Could not connect to {uri}. Make sure the server is running!")
+        print(f"❌ Could not connect to localhost:5092. Make sure the server is running!")
     except Exception as e:
         print(f"❌ Unexpected WebSocket error: {e}")
     finally:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 import io, wave, tempfile, numpy as np, torch
-from typing import List
+from typing import List, Tuple
 from torch.hub import load as torch_hub_load
 
 vad_model, vad_utils = torch_hub_load("snakers4/silero-vad", "silero_vad")
@@ -39,9 +39,14 @@ class StreamingVAD:
         self.ring_buffer_maxlen = int((SPEECH_PAD_MS / 1000.0) * SAMPLE_RATE * 2)
 
 
-    def _flush(self) -> List[str]:
+    def _flush(self) -> Tuple[List[str], List[dict]]:
+        events: List[dict] = []
+        if self.is_speaking:
+            events.append({"vad": "speech_end"})
+
         if not self.buffer:
-            return []
+            return [], events
+            
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
         with wave.open(tmp, "wb") as wf:
             wf.setnchannels(1)
@@ -52,10 +57,11 @@ class StreamingVAD:
         self.speech_ms = 0
         self.vad.reset_states()
         self.is_speaking = False
-        return [tmp.name]
+        return [tmp.name], events
 
-    def feed(self, frame_bytes: bytes) -> List[str]:
-        out: List[str] = []
+    def feed(self, frame_bytes: bytes) -> Tuple[List[str], List[dict]]:
+        out_paths: List[str] = []
+        out_events: List[dict] = []
 
         pcm_f32 = np.frombuffer(frame_bytes, np.int16).astype("float32") / 32768.0
         for start in range(0, len(pcm_f32), WINDOW_SAMPLES):
@@ -67,6 +73,8 @@ class StreamingVAD:
             pcm16_chunk = _f32_to_pcm16(window)
 
             if voice_event is not None and "start" in voice_event:
+                if not self.is_speaking:
+                    out_events.append({"vad": "speech_start"})
                 self.is_speaking = True
                 self.buffer.extend(self.ring_buffer)
                 self.speech_ms += len(self.ring_buffer) // (SAMPLE_RATE * 2 // 1000)
@@ -82,8 +90,12 @@ class StreamingVAD:
 
             # Flush on trailing-silence event or max-length guard
             if voice_event is not None and "end" in voice_event:
-                out.extend(self._flush())
+                paths, events = self._flush()
+                out_paths.extend(paths)
+                out_events.extend(events)
             elif self.speech_ms >= MAX_SPEECH_MS:
-                out.extend(self._flush())
+                paths, events = self._flush()
+                out_paths.extend(paths)
+                out_events.extend(events)
 
-        return out
+        return out_paths, out_events
