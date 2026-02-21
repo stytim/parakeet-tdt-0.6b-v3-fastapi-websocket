@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.10-venv \
     python3-pip \
     ffmpeg \
+    libsndfile1 \
     && ln -sf /usr/bin/python3.10 /usr/bin/python \
     && ln -sf /usr/bin/python3.10 /usr/bin/python3 \
     && rm -rf /var/lib/apt/lists/* \
@@ -28,20 +29,13 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install Python dependencies with GPU support
-# Replace onnxruntime with onnxruntime-gpu
+# Replace onnxruntime with onnxruntime-gpu in requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir onnx-asr[hub]>=0.10.0 \
-    waitress>=3.0.0 \
-    flask>=3.0.0 \
-    openai>=1.0.0 \
-    typing_extensions>=4.0.0 \
-    psutil>=5.0.0 \
-    requests>=2.0.0 \
-    onnxruntime-gpu>=1.18.1 \
-    "numpy<2"
+    sed -i 's/onnxruntime>=1.18.1/onnxruntime-gpu>=1.18.1/g' requirements.txt && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app.py .
+COPY *.py .
 COPY templates/ templates/
 COPY parakeet.png .
 
@@ -51,6 +45,9 @@ RUN mkdir -p temp_uploads models && \
 
 # Switch to non-root user
 USER parakeet
+
+# Pre-download VAD model
+RUN python -c "import torch; torch.hub.load('snakers4/silero-vad', 'silero_vad')"
 
 # Environment variables
 ENV HF_HOME=/app/models

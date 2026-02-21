@@ -12,6 +12,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    libsndfile1 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -27,7 +28,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app.py .
+COPY *.py .
 COPY templates/ templates/
 COPY parakeet.png .
 
@@ -37,6 +38,9 @@ RUN mkdir -p temp_uploads models && \
 
 # Switch to non-root user
 USER parakeet
+
+# Pre-download VAD model
+RUN python -c "import torch; torch.hub.load('snakers4/silero-vad', 'silero_vad')"
 
 # Environment variables
 ENV HF_HOME=/app/models
