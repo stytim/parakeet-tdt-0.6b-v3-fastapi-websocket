@@ -1,5 +1,6 @@
 host = "0.0.0.0"
 port = 5092
+import os
 threads = os.cpu_count() or 8  # Dynamically use all available threads
 CHUNK_MINUTE = 1.5  # Target 90-second chunks with intelligent silence-based splitting
 
@@ -14,7 +15,7 @@ import sys
 
 sys.stdout = sys.stderr
 
-import os, sys, json, math, re, threading
+import sys, json, math, re, threading
 import shutil
 import uuid
 import subprocess
@@ -71,7 +72,8 @@ try:
     providers_to_try = []
     if "CUDAExecutionProvider" in available_providers:
         providers_to_try.append("CUDAExecutionProvider")
-    providers_to_try.append("CPUExecutionProvider")
+    else:
+        providers_to_try.append("CPUExecutionProvider")
     
     print(f"Using providers: {providers_to_try}")
 
@@ -96,9 +98,7 @@ try:
     # Cache the default model
     model_cache["parakeet-tdt-0.6b-v3"] = asr_model
     
-    # Check actual providers used by the model
-    actual_providers = asr_model.session.get_providers()
-    print(f"Default model loaded successfully using: {actual_providers}")
+    print(f"Default model loaded successfully using: {providers_to_try}")
 except Exception as e:
     print(f"❌ Model loading failed: {e}")
     import traceback
