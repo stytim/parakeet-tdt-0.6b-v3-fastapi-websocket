@@ -86,6 +86,7 @@ try:
     sess_options.inter_op_num_threads = 1
     sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
     sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    sess_options.log_severity_level = 3  # Suppress benign Memcpy and Node assignment warnings
 
     default_config = MODEL_CONFIGS["parakeet-tdt-0.6b-v3"]
     asr_model = onnx_asr.load_model(
@@ -148,6 +149,7 @@ def get_model(model_name):
         sess_options.inter_op_num_threads = 1
         sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
         sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        sess_options.log_severity_level = 3  # Suppress benign Memcpy and Node assignment warnings
         
         model = onnx_asr.load_model(
             config["hf_id"],
